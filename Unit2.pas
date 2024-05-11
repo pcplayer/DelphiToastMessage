@@ -41,22 +41,22 @@ uses Unit1;
 
 procedure TForm2.BtnErrorClick(Sender: TObject);
 begin
-  ToastMessage.Toast(Self, tpError,'Error','My Text');
+  TToastMessage.ToastIt(Self, tpError,'Error','My Text');
 end;
 
 procedure TForm2.BtnInfoClick(Sender: TObject);
 begin
-  ToastMessage.Toast(Self, tpInfo,'Info','My Text');
+  TToastMessage.ToastIt(Self, tpInfo,'Info','My Text');
 end;
 
 procedure TForm2.BtnSuccessClick(Sender: TObject);
 begin
-  ToastMessage.Toast(Self, tpSuccess,'Success','My Text');
+  TToastMessage.ToastIt(Self, tpSuccess,'Success','My Text');
 end;
 
 procedure TForm2.Button1Click(Sender: TObject);
 begin
-  Form1.ShowModal;
+  Form1.Show;
 end;
 
 procedure TForm2.FormCreate(Sender: TObject);
@@ -68,7 +68,7 @@ begin
   FPanel.Name := 'MyPanel';
   FPanel.Parent := Self;
   FPanel.Align := alTop;
-  FPanel.Height := 200;
+  FPanel.Height := 100;
   //FPanel.SendToBack;
 end;
 

@@ -29,3 +29,12 @@ begin
 end;
 
 end.
+
+---------
+update by pcplayer 2024-5-12
+
+add class var and calss function to simplified the use of this class.
+
+So, you don't need to create it and free it. In any form of your project, just call: 
+
+**TToastMessage.ToastIt(Self, tpInfo, 'Info', 'My Info');**

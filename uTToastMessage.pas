@@ -12,6 +12,14 @@ unit uTToastMessage;
         如果一次要显示很多条，类似一下弹出好几条信息，依次伸出多条显示，然后依次缩回去，就需要多个实例。
         这种情况下，需要增加一些代码，比如内部增加一个 List 来存放多个实例。
 
+  4. 修改：去掉全局的 ToastMessage，用类变量和类方法来封装。这样用起来就简单了，直接调用类方法搞定。
+
+  5. todo: 因此，如果同时要显示多个 Toast，则需要有一个类变量是 List
+
+  6. About free object:
+  6.1. if PanelBox has shown on a form, its parent is this form. And if this form is released soon after, it will release PanleBox。So, if PanelBox is hidding, set its parent to nil.
+  6.2. if PanelBox is on showing, and user close Application, PanelBox has parent, it will release by its parent.
+
   pcplayer 2024-5-11
 --------------------------------------------------------------------------------}
 interface
@@ -67,16 +75,20 @@ type
         SuccessColor  : TColor;
         InfoColor     : TColor;
         ErrorColor    : TColor;
+      class var FToastMessage: TToastMessage;
     public
       procedure Toast(const MessageType : tpMode; pTitle, pText : string); overload;
       procedure Toast(const Parent: TWinControl; const MessageType : tpMode; pTitle, pText : string); overload;
 
       constructor Create(const Parent : TWinControl); overload;
       destructor Destroy; override;
+
+      class procedure ToastIt(const Parent : TWinControl; const MessageType : tpMode; pTitle, pText : string);
+      class procedure RealseMe;
   end;
 
-var
-  ToastMessage: TToastMessage;
+//var
+//  ToastMessage: TToastMessage;
 
 implementation
 
@@ -117,8 +129,8 @@ begin
   CreatePanelBox(Parent);
 
   {Create Timer}
-  TimerAnimation := TTimer.Create(Parent);
-  TimerWaiting   := TTimer.Create(Parent);
+  TimerAnimation := TTimer.Create(nil);
+  TimerWaiting   := TTimer.Create(nil);
 
   TimerAnimation.Interval := 15;
   TimerAnimation.OnTimer  := Animate;
@@ -155,7 +167,7 @@ begin
           TimerAnimation.Enabled := False;
           TimerWaiting.Enabled   := False;
           PanelBox.Tag           := 0;
-          PanelBox.Parent := nil;
+          Self.SetParent(nil);
         end;
     end;
 end;
@@ -294,10 +306,7 @@ begin
   Text.Transparent  := True;
   Text.Font.Style   := [fsBold];
 
-  if Assigned(Parent) then
-  begin
-    Self.SetParent(Parent);
-  end;
+  Self.SetParent(Parent);
 end;
 
 destructor TToastMessage.Destroy;
@@ -318,6 +327,18 @@ begin
   PanelBox.Left := Trunc(((Sender as TForm).Width / 2) - (PanelBox.Width / 2));
 end;
 
+class procedure TToastMessage.RealseMe;
+begin
+  if Assigned(FToastMessage) then
+  begin
+    if Assigned(FToastMessage.PanelBox.Parent)  then
+    begin
+      FToastMessage.Free;
+      FToastMessage := nil;
+    end;
+  end;
+end;
+
 procedure TToastMessage.RegisterColors;
 begin
   PanelBoxColor := clWhite;
@@ -332,6 +353,9 @@ procedure TToastMessage.SetParent(const Parent: TWinControl);
 begin
   //add by pcplayer
   Self.PanelBox.Parent := Parent;
+
+  if not Assigned(Parent) then Exit;
+
   PanelBoxPosition(Parent);
 
   if Parent is TForm then
@@ -343,6 +367,17 @@ procedure TToastMessage.Toast(const Parent: TWinControl;
 begin
   Self.SetParent(Parent);
   Self.Toast(MessageType, pTitle, pText);
+end;
+
+class procedure TToastMessage.ToastIt(const Parent : TWinControl; const MessageType: tpMode; pTitle,
+  pText: string);
+begin
+  if not Assigned(FToastMessage) then
+  begin
+    FToastMessage := TToastMessage.Create(Parent);
+  end;
+
+  FToastMessage.Toast(Parent, MessageType, pTitle, pText);
 end;
 
 procedure TToastMessage.Toast(const MessageType : tpMode; pTitle, pText : string);
@@ -371,11 +406,15 @@ begin
   TimerAnimation.Enabled := True;
 end;
 
+//initialization
+//  ToastMessage := TToastMessage.Create(nil);
+//
+//finalization
+//  ToastMessage.Free;  //一旦使用，就会给它设置 Parent，一旦有 Parent，某个 Form 退出关闭时，就会消灭它。因此，必须在隐藏后，取消它的 Parent;
+
 initialization
-  ToastMessage := TToastMessage.Create(nil);
 
 finalization
-  ToastMessage.Free;  //一旦使用，就会给它设置 Parent，一旦有 Parent，某个 Form 退出关闭时，就会消灭它。因此，必须在隐藏后，取消它的 Parent;
-
+  TToastMessage.RealseMe;
 
 end.
