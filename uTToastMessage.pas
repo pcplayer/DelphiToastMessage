@@ -1,5 +1,19 @@
 unit uTToastMessage;
+{------------------------------------------------------------------------------
+  来自 https://github.com/desenvolvimentojd3/DelphiToastMessage
 
+  我对它进行了一些修改：
+  1. 增加一个全局变量  ToastMessage: TToastMessage; 这样就一个实例可以显示到所有 Form 里面去，
+     而不是它的例子那样，每个 Form 都需要自己创建实例；
+  2. 因为要一个实例，显示到所有 Form 里面去，因此增加了一个 Toast 方法，给 Parent；
+  3. 因为整个程序一个实例，所以本单元自己创建实例，使用 initialization
+
+  todo: 上述修改都基于一种情况：每次只显示一条信息。
+        如果一次要显示很多条，类似一下弹出好几条信息，依次伸出多条显示，然后依次缩回去，就需要多个实例。
+        这种情况下，需要增加一些代码，比如内部增加一个 List 来存放多个实例。
+
+  pcplayer 2024-5-11
+--------------------------------------------------------------------------------}
 interface
 
 uses System.NetEncoding,
@@ -27,6 +41,8 @@ type
       procedure CreatePanelBox   (const Parent : TWinControl);
       procedure RegisterColors;
 
+      procedure SetParent(const Parent: TWinControl);
+
       function Base64ToPng(const StringBase64: string): TPngImage;
       var
         Timer : TTimer;
@@ -52,11 +68,15 @@ type
         InfoColor     : TColor;
         ErrorColor    : TColor;
     public
-      procedure Toast(const MessageType : tpMode; pTitle, pText : string);
+      procedure Toast(const MessageType : tpMode; pTitle, pText : string); overload;
+      procedure Toast(const Parent: TWinControl; const MessageType : tpMode; pTitle, pText : string); overload;
 
       constructor Create(const Parent : TWinControl); overload;
       destructor Destroy; override;
   end;
+
+var
+  ToastMessage: TToastMessage;
 
 implementation
 
@@ -135,6 +155,7 @@ begin
           TimerAnimation.Enabled := False;
           TimerWaiting.Enabled   := False;
           PanelBox.Tag           := 0;
+          PanelBox.Parent := nil;
         end;
     end;
 end;
@@ -273,10 +294,10 @@ begin
   Text.Transparent  := True;
   Text.Font.Style   := [fsBold];
 
-  PanelBoxPosition(Parent);
-
-  if Parent is TForm then
-    (Parent as TForm).OnResize := PanelBoxPosition;
+  if Assigned(Parent) then
+  begin
+    Self.SetParent(Parent);
+  end;
 end;
 
 destructor TToastMessage.Destroy;
@@ -307,8 +328,26 @@ begin
   ErrorColor    := $003643F4;
 end;
 
+procedure TToastMessage.SetParent(const Parent: TWinControl);
+begin
+  //add by pcplayer
+  Self.PanelBox.Parent := Parent;
+  PanelBoxPosition(Parent);
+
+  if Parent is TForm then
+    (Parent as TForm).OnResize := PanelBoxPosition;
+end;
+
+procedure TToastMessage.Toast(const Parent: TWinControl;
+  const MessageType: tpMode; pTitle, pText: string);
+begin
+  Self.SetParent(Parent);
+  Self.Toast(MessageType, pTitle, pText);
+end;
+
 procedure TToastMessage.Toast(const MessageType : tpMode; pTitle, pText : string);
 begin
+  Self.PanelBox.BringToFront; //Z轴方向放到最顶上； //pcplayer
   Title.Caption := pTitle;
   Text.Caption  := pText;
 
@@ -331,5 +370,12 @@ begin
   //Start Toast
   TimerAnimation.Enabled := True;
 end;
+
+initialization
+  ToastMessage := TToastMessage.Create(nil);
+
+finalization
+  ToastMessage.Free;  //一旦使用，就会给它设置 Parent，一旦有 Parent，某个 Form 退出关闭时，就会消灭它。因此，必须在隐藏后，取消它的 Parent;
+
 
 end.
