@@ -17,8 +17,18 @@ unit uTToastMessage;
   5. todo: 因此，如果同时要显示多个 Toast，则需要有一个类变量是 List
 
   6. About free object:
-  6.1. if PanelBox has shown on a form, its parent is this form. And if this form is released soon after, it will release PanleBox。So, if PanelBox is hidding, set its parent to nil.
-  6.2. if PanelBox is on showing, and user close Application, PanelBox has parent, it will release by its parent.
+  6.1. if PanelBox is not on showing, release PanelBox is no problem.
+  6.2. if PanelBox has shown on a form, its parent is this form, but PanelBox.Owner is nil.
+       So when it is showing and user close Application, we can free PanelBox safely.
+       But, even if I add a if Assigned(PanelBox) and then release it, there will raise a exception.
+       So, I set it's name property, and in this situastion, it's name is ''.
+       So, I add if PanelBox.Name <> ''.
+       The problem is: when user close application, the different of two situastion is PanelBox.Parent,
+       when it is showing, it's parent is a Form, and when form is destroy, it should not free PanelBox.
+       Because the Form is just its parent, not its owner.
+
+  7. the parent of PanelBox is a TForm, when we show message, we take over the OnResize event of TForm,
+     so, when hide message, we must return this event handler to TForm.
 
   pcplayer 2024-5-11
 --------------------------------------------------------------------------------}
@@ -75,6 +85,9 @@ type
         SuccessColor  : TColor;
         InfoColor     : TColor;
         ErrorColor    : TColor;
+
+        FFormOnResize: TNotifyEvent;
+
       class var FToastMessage: TToastMessage;
     public
       procedure Toast(const MessageType : tpMode; pTitle, pText : string); overload;
@@ -129,8 +142,8 @@ begin
   CreatePanelBox(Parent);
 
   {Create Timer}
-  TimerAnimation := TTimer.Create(nil);
-  TimerWaiting   := TTimer.Create(nil);
+  TimerAnimation := TTimer.Create(PanelBox);
+  TimerWaiting   := TTimer.Create(PanelBox);
 
   TimerAnimation.Interval := 15;
   TimerAnimation.OnTimer  := Animate;
@@ -167,6 +180,15 @@ begin
           TimerAnimation.Enabled := False;
           TimerWaiting.Enabled   := False;
           PanelBox.Tag           := 0;
+
+          if (PanelBox.Parent is TForm) then
+          begin
+            if Assigned(Self.FFormOnResize) then
+            begin
+              (PanelBox.Parent as TForm).OnResize := Self.FFormOnResize;
+            end;
+          end;
+
           Self.SetParent(nil);
         end;
     end;
@@ -212,6 +234,8 @@ begin
 
   {Create Principal Panel}
   PanelBox                  := TPanel.Create(nil);
+  PanelBox.Name := 'MyPanelBox';
+  PanelBox.Caption := '';
   PanelBox.Visible          := True;
   PanelBox.Parent           := Parent;
   PanelBox.BorderStyle      := Forms.bsNone;
@@ -228,6 +252,8 @@ begin
 
   {Create Panel Vertical Line}
   PanelLine                  := TPanel.Create(PanelBox);
+  PanelLine.Name := 'MyPanelLine';
+  PanelLine.Caption := '';
   PanelLine.Parent           := PanelBox;
   PanelLine.BorderStyle      := Forms.bsNone;
   PanelLine.Align            := alLeft;
@@ -242,6 +268,8 @@ begin
 
   {Create Image}
   PanelImage             := TPanel.Create(PanelBox);
+  PanelImage.Name := 'MyPanelImage';
+  PanelImage.Caption := '';
   PanelImage.Parent      := PanelBox;
   PanelImage.Visible     := True;
   PanelImage.Align       := alLeft;
@@ -255,6 +283,7 @@ begin
   PanelImage.Width       := 31;
 
   Image := TImage.Create(PanelImage);
+  Image.Name := 'MyImage';
 
   Image.Align        := AlClient;
   Image.Parent       := PanelImage;
@@ -264,6 +293,8 @@ begin
 
   {Create Panel Message}
   PanelMessage             := TPanel.Create(PanelBox);
+  PanelMessage.Name := 'MyPanelMessage';
+  PanelMessage.Caption := '';
   PanelMessage.Parent      := PanelBox;
   PanelMessage.Visible     := True;
   PanelMessage.Align       := alClient;
@@ -275,6 +306,7 @@ begin
 
   {Create Title}
   Title := TLabel.Create(PanelMessage);
+  Title.Name := 'LabelTitle';
 
   Title.Parent      := PanelMessage;
   Title.AutoSize    := True;
@@ -292,6 +324,7 @@ begin
 
  {Create Text}
   Text := TLabel.Create(PanelMessage);
+  Text.Name := 'LabelText';
 
   Text.Parent       := PanelMessage;
   Text.AutoSize     := True;
@@ -305,37 +338,35 @@ begin
   Text.Font.Size    := 8;
   Text.Transparent  := True;
   Text.Font.Style   := [fsBold];
-
-  Self.SetParent(Parent);
 end;
 
 destructor TToastMessage.Destroy;
 begin
   if Assigned(PanelBox) then
-    PanelBox.Destroy;
-
-  if Assigned(TimerAnimation) then
-    TimerAnimation.Destroy;
-
-  if Assigned(TimerWaiting) then
-    TimerWaiting.Destroy;
+  begin
+    if PanelBox.Name <> '' then
+    begin
+      FreeAndNil(PanelBox);
+    end;
+  end;
 end;
 
 procedure TToastMessage.PanelBoxPosition(Sender: TObject);
 begin
   inherited;
   PanelBox.Left := Trunc(((Sender as TForm).Width / 2) - (PanelBox.Width / 2));
+
+  if Assigned(Self.FFormOnResize) then
+  begin
+    FFormOnResize(nil);
+  end;
 end;
 
 class procedure TToastMessage.RealseMe;
 begin
   if Assigned(FToastMessage) then
   begin
-    if Assigned(FToastMessage.PanelBox.Parent)  then
-    begin
-      FToastMessage.Free;
-      FToastMessage := nil;
-    end;
+    FreeAndNil(FToastMessage);
   end;
 end;
 
@@ -359,7 +390,10 @@ begin
   PanelBoxPosition(Parent);
 
   if Parent is TForm then
+  begin
+    Self.FFormOnResize := (Parent as TForm).OnResize;
     (Parent as TForm).OnResize := PanelBoxPosition;
+  end;
 end;
 
 procedure TToastMessage.Toast(const Parent: TWinControl;

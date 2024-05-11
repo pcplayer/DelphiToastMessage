@@ -12,6 +12,7 @@ object Form2: TForm2
   Font.Style = []
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnResize = FormResize
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
@@ -21,7 +22,7 @@ object Form2: TForm2
     Align = alTop
     Caption = 'Panel1'
     TabOrder = 0
-    ExplicitWidth = 702
+    ExplicitWidth = 826
     object Panel3: TPanel
       AlignWithMargins = True
       Left = 4
@@ -31,7 +32,7 @@ object Form2: TForm2
       Align = alClient
       Caption = 'Panel3'
       TabOrder = 0
-      ExplicitWidth = 694
+      ExplicitWidth = 818
     end
   end
   object Panel2: TPanel
@@ -42,7 +43,7 @@ object Form2: TForm2
     Align = alTop
     Caption = 'Panel2'
     TabOrder = 1
-    ExplicitWidth = 702
+    ExplicitWidth = 826
     object BtnError: TButton
       Left = 386
       Top = 103
@@ -79,5 +80,13 @@ object Form2: TForm2
       TabOrder = 3
       OnClick = Button1Click
     end
+  end
+  object Edit1: TEdit
+    Left = 80
+    Top = 376
+    Width = 121
+    Height = 21
+    TabOrder = 2
+    Text = 'Edit1'
   end
 end

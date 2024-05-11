@@ -16,12 +16,14 @@ type
     Panel2: TPanel;
     Panel3: TPanel;
     Button1: TButton;
+    Edit1: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnSuccessClick(Sender: TObject);
     procedure BtnInfoClick(Sender: TObject);
     procedure BtnErrorClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure FormResize(Sender: TObject);
   private
     { Private declarations }
 
@@ -76,6 +78,11 @@ procedure TForm2.FormDestroy(Sender: TObject);
 begin
 //  if Assigned(ToastMessage) then
 //    FreeAndNil(ToastMessage);
+end;
+
+procedure TForm2.FormResize(Sender: TObject);
+begin
+  Edit1.Left := Trunc(Self.Width /2);
 end;
 
 end.
