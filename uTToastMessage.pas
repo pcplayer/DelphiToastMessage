@@ -284,6 +284,7 @@ begin
   PanelBox.ParentBackground := False;
   PanelBox.Ctl3d            := False;
   PanelBox.Tag              := 0;
+  PanelBox.DoubleBuffered := True;
 
   {Create Panel Vertical Line}
   PanelLine                  := TPanel.Create(PanelBox);
@@ -300,6 +301,7 @@ begin
   PanelLine.Visible          := True;
   PanelLine.FullRepaint      := True;
   PanelLine.Ctl3d            := False;
+  PanelLine.DoubleBuffered := True;
 
   {Create Image}
   PanelImage             := TPanel.Create(PanelBox);
@@ -316,6 +318,7 @@ begin
   PanelImage.Height      := 38;
   PanelImage.Left        := 0;
   PanelImage.Width       := 31;
+  PanelImage.DoubleBuffered := True;
 
   Image := TImage.Create(PanelImage);
   Image.Name := 'MyImage';
@@ -338,6 +341,7 @@ begin
   PanelMessage.BevelKind   := bkNone;
   PanelMessage.BorderStyle := Forms.bsNone;
   PanelMessage.Color       := PanelBoxColor;
+  PanelMessage.DoubleBuffered := True;
 
   {Create Title}
   Title := TLabel.Create(PanelMessage);
@@ -373,6 +377,8 @@ begin
   Text.Font.Size    := 8;
   Text.Transparent  := True;
   Text.Font.Style   := [fsBold];
+  Text.AlignWithMargins := True;
+  Text.Transparent := True;
 end;
 
 destructor TToastMessage.Destroy;
@@ -441,6 +447,8 @@ end;
 
 procedure TToastMessage.Toast(const Parent: TWinControl;
   const MessageType: tpMode; pTitle, pText: string);
+var
+  hs, tmp: Integer;
 begin
   if Self.IsShowing then
   begin
@@ -452,6 +460,28 @@ begin
 
     Exit;
   end;
+
+    //秋风
+  //计算宽度
+  PanelBox.Parent := Parent;
+  PanelBox.Height := 50;
+  PanelBox.Width := 50 + Text.Canvas.TextWidth(pText);
+  tmp := Text.Canvas.TextWidth('W');
+  if PanelBox.Width > ((Parent as TForm).Width / 2) then
+  begin
+    {PanelBox.Width := 50 + Text.Canvas.TextWidth(pText) div 2;
+    if PanelBox.Width> (Parent as TForm).Width then
+      PanelBox.Width := (Parent as TForm).Width -10;
+    }
+
+    PanelBox.Width := Trunc(Parent.Width / 2);    //pcplayer.
+
+    hs := (PanelBox.Width-50) div tmp; //每行容纳n个字符
+    hs := Length(pText) div hs;  //n行
+    PanelBox.Height := Title.Height + Text.Height + (hs-1) * Text.Canvas.TextHeight(pText) + 40;
+    MinTop := -PanelBox.Height;
+  end;
+
 
   Self.SetParent(Parent);
   Self.Toast(MessageType, pTitle, pText);

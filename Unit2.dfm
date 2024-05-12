@@ -14,6 +14,13 @@ object Form2: TForm2
   OnDestroy = FormDestroy
   OnResize = FormResize
   TextHeight = 13
+  object Label1: TLabel
+    Left = 96
+    Top = 280
+    Width = 31
+    Height = 13
+    Caption = 'Label1'
+  end
   object Panel1: TPanel
     Left = 0
     Top = 0
@@ -41,7 +48,9 @@ object Form2: TForm2
     Width = 830
     Height = 128
     Align = alTop
-    Caption = 'Panel2'
+    Caption = 'hello world'
+    DoubleBuffered = True
+    ParentDoubleBuffered = False
     TabOrder = 1
     ExplicitWidth = 826
     object BtnError: TButton

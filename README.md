@@ -38,3 +38,7 @@ add class var and calss function to simplified the use of this class.
 So, you don't need to create it and free it. In any form of your project, just call: 
 
 **TToastMessage.ToastIt(Self, tpInfo, 'Info', 'My Info');**
+
+### Updated 2024-5-13
+1. Add message queue;
+2. Add width calculate;

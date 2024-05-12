@@ -17,6 +17,7 @@ type
     Panel3: TPanel;
     Button1: TButton;
     Edit1: TEdit;
+    Label1: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnSuccessClick(Sender: TObject);
@@ -48,7 +49,7 @@ end;
 
 procedure TForm2.BtnInfoClick(Sender: TObject);
 begin
-  TToastMessage.ToastIt(Self, tpInfo,'Info','My Text');
+  TToastMessage.ToastIt(Self, tpInfo,'Info','这是一个很长的提示信息，看看长度是否可以放得下，哈哈哈，this is a test text');
 end;
 
 procedure TForm2.BtnSuccessClick(Sender: TObject);
