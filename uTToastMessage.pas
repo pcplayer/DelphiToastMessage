@@ -30,6 +30,10 @@ unit uTToastMessage;
   7. the parent of PanelBox is a TForm, when we show message, we take over the OnResize event of TForm,
      so, when hide message, we must return this event handler to TForm.
 
+  8. add message queue;
+  8.1. FMessageList: TStringList 用于存放消息队列；字符串用于存放消息，格式是：modetype;title;text, 中间用[;]分割；
+  8.2. TWinControl 是指消息的 Parent;
+
   pcplayer 2024-5-11
 --------------------------------------------------------------------------------}
 interface
@@ -41,6 +45,7 @@ uses System.NetEncoding,
      Vcl.StdCtrls,
      Vcl.Imaging.pngimage,
      System.Classes,
+     System.Generics.Collections,
      System.SysUtils,
      Forms,
      Winapi.Windows,
@@ -50,54 +55,59 @@ type tpMode = (tpSuccess,tpInfo,tpError);
 
 type
   TToastMessage = class
-    private
-      {Timer}
-      procedure Animate(Sender : TObject);
-      procedure Wait   (Sender : TObject);
+  private
+    {Timer}
+    procedure Animate(Sender : TObject);
+    procedure Wait   (Sender : TObject);
 
-      procedure PanelBoxPosition (Sender: TObject);
-      procedure CreatePanelBox   (const Parent : TWinControl);
-      procedure RegisterColors;
+    procedure PanelBoxPosition (Sender: TObject);
+    procedure CreatePanelBox   (const Parent : TWinControl);
+    procedure RegisterColors;
 
-      procedure SetParent(const Parent: TWinControl);
+    procedure SetParent(const Parent: TWinControl);
 
-      function Base64ToPng(const StringBase64: string): TPngImage;
-      var
-        Timer : TTimer;
+    function Base64ToPng(const StringBase64: string): TPngImage;
+    function GetIsShowing: Boolean;
+    procedure CheckMessageQueue;
+    var
+      //Timer : TTimer;
 
-        SuccessImage : string;
-        ErrorImage   : string;
-        InfoImage    : string;
-        PanelBox     : TPanel;
-        PanelLine    : TPanel;
-        Image        : TImage;
-        Title        : TLabel;
-        Text         : TLabel;
-        MaxTop       : Integer;
-        MinTop       : Integer;
+      SuccessImage : string;
+      ErrorImage   : string;
+      InfoImage    : string;
+      PanelBox     : TPanel;
+      PanelLine    : TPanel;
+      Image        : TImage;
+      Title        : TLabel;
+      Text         : TLabel;
+      MaxTop       : Integer;
+      MinTop       : Integer;
 
-        TimerAnimation : TTimer;
-        TimerWaiting   : TTimer;
+      TimerAnimation : TTimer;
+      TimerWaiting   : TTimer;
 
-        PanelBoxColor : TColor;
-        TitleColor    : TColor;
-        TextColor     : TColor;
-        SuccessColor  : TColor;
-        InfoColor     : TColor;
-        ErrorColor    : TColor;
+      PanelBoxColor : TColor;
+      TitleColor    : TColor;
+      TextColor     : TColor;
+      SuccessColor  : TColor;
+      InfoColor     : TColor;
+      ErrorColor    : TColor;
 
-        FFormOnResize: TNotifyEvent;
+      FFormOnResize: TNotifyEvent;
 
-      class var FToastMessage: TToastMessage;
-    public
-      procedure Toast(const MessageType : tpMode; pTitle, pText : string); overload;
-      procedure Toast(const Parent: TWinControl; const MessageType : tpMode; pTitle, pText : string); overload;
+    class var FToastMessage: TToastMessage;
+    class var FMessageList: TStringList;
+  public
+    procedure Toast(const MessageType : tpMode; pTitle, pText : string); overload;
+    procedure Toast(const Parent: TWinControl; const MessageType : tpMode; pTitle, pText : string); overload;
 
-      constructor Create(const Parent : TWinControl); overload;
-      destructor Destroy; override;
+    constructor Create(const Parent : TWinControl); overload;
+    destructor Destroy; override;
 
-      class procedure ToastIt(const Parent : TWinControl; const MessageType : tpMode; pTitle, pText : string);
-      class procedure RealseMe;
+    class procedure ToastIt(const Parent : TWinControl; const MessageType : tpMode; pTitle, pText : string);
+    class procedure RealseMe;
+
+    property IsShowing: Boolean read GetIsShowing;
   end;
 
 //var
@@ -106,6 +116,30 @@ type
 implementation
 
 { ToastMessage }
+
+procedure TToastMessage.CheckMessageQueue;
+var
+  AArray: TArray<string>;
+  AParent: TWinControl;
+  S, AMode, ATitle, AText: string;
+  MessageType: tpMode;
+begin
+  if not Assigned(FMessageList) then Exit;
+  if FMessageList.Count = 0 then Exit;
+
+  AParent := FMessageList.Objects[0] as TWinControl;
+  S := FMessageList.Strings[0];
+  FMessageList.Delete(0);
+
+  AArray := S.Split([';']);
+  AMode := AArray[0];
+  ATitle := AArray[1];
+  AText := AArray[2];
+
+  MessageType := tpMode(StrToInt(AMode));
+
+  Self.Toast(AParent, MessageType, ATitle, AText);
+end;
 
 constructor TToastMessage.Create(const Parent : TWinControl);
 begin
@@ -158,40 +192,41 @@ procedure TToastMessage.Animate(Sender: TObject);
 begin
   //Tag 0 Show
   if PanelBox.Tag = 0 then
+  begin
+    PanelBox.Visible := True;
+
+    PanelBox.Top := PanelBox.Top + 1;
+
+    if PanelBox.Top = MaxTop then
     begin
-      PanelBox.Visible := True;
-
-      PanelBox.Top := PanelBox.Top + 1;
-
-      if PanelBox.Top = MaxTop then
-        begin
-          TimerAnimation.Enabled := False;
-          TimerWaiting.Enabled   := True;
-          PanelBox.Tag           := 1;
-        end;
-    end
-  //Tag 1 Hide
-  else if PanelBox.Tag = 1 then
-    begin
-      PanelBox.Top := PanelBox.Top - 1;
-
-      if PanelBox.Top = MinTop then
-        begin
-          TimerAnimation.Enabled := False;
-          TimerWaiting.Enabled   := False;
-          PanelBox.Tag           := 0;
-
-          if (PanelBox.Parent is TForm) then
-          begin
-            if Assigned(Self.FFormOnResize) then
-            begin
-              (PanelBox.Parent as TForm).OnResize := Self.FFormOnResize;
-            end;
-          end;
-
-          Self.SetParent(nil);
-        end;
+      TimerAnimation.Enabled := False;
+      TimerWaiting.Enabled   := True;
+      PanelBox.Tag           := 1;
     end;
+  end
+  else      //Tag 1 Hide
+  if PanelBox.Tag = 1 then
+  begin
+    PanelBox.Top := PanelBox.Top - 1;
+
+    if PanelBox.Top = MinTop then
+    begin
+      TimerAnimation.Enabled := False;
+      TimerWaiting.Enabled   := False;
+      PanelBox.Tag           := 0;
+
+      if (PanelBox.Parent is TForm) then
+      begin
+        if Assigned(Self.FFormOnResize) then
+        begin
+          (PanelBox.Parent as TForm).OnResize := Self.FFormOnResize;
+        end;
+      end;
+
+      Self.SetParent(nil);
+      Self.CheckMessageQueue; //if there are some new message, show it.
+    end;
+  end;
 end;
 
 procedure TToastMessage.Wait(Sender: TObject);
@@ -351,9 +386,17 @@ begin
   end;
 end;
 
+function TToastMessage.GetIsShowing: Boolean;
+begin
+  Result := (Self.TimerAnimation.Enabled) or (Self.TimerWaiting.Enabled);
+end;
+
 procedure TToastMessage.PanelBoxPosition(Sender: TObject);
 begin
   inherited;
+
+  if not Assigned(Sender) then Exit;
+
   PanelBox.Left := Trunc(((Sender as TForm).Width / 2) - (PanelBox.Width / 2));
 
   if Assigned(Self.FFormOnResize) then
@@ -399,6 +442,17 @@ end;
 procedure TToastMessage.Toast(const Parent: TWinControl;
   const MessageType: tpMode; pTitle, pText: string);
 begin
+  if Self.IsShowing then
+  begin
+    if not Assigned(FMessageList) then
+    begin
+      FMessageList := TStringList.Create;
+    end;
+    FMessageList.AddObject(Ord(MessageType).ToString + ';' + pTitle + ';' + pText, Parent); //push message to queue;2024-5-12
+
+    Exit;
+  end;
+
   Self.SetParent(Parent);
   Self.Toast(MessageType, pTitle, pText);
 end;
@@ -421,20 +475,20 @@ begin
   Text.Caption  := pText;
 
   if MessageType = tpSuccess then
-    begin
-      PanelLine.Color := SuccessColor;
-      Image.Picture.Assign(Base64ToPng(Trim(SuccessImage)));
-    end
+  begin
+    PanelLine.Color := SuccessColor;
+    Image.Picture.Assign(Base64ToPng(Trim(SuccessImage)));
+  end
   else if MessageType = tpInfo then
-    begin
-      PanelLine.Color := InfoColor;
-      Image.Picture.Assign(Base64ToPng(Trim(InfoImage)));
-    end
+  begin
+    PanelLine.Color := InfoColor;
+    Image.Picture.Assign(Base64ToPng(Trim(InfoImage)));
+  end
   else if MessageType = tpError then
-    begin
-      PanelLine.Color := ErrorColor;
-      Image.Picture.Assign(Base64ToPng(Trim(ErrorImage)));
-    end;
+  begin
+    PanelLine.Color := ErrorColor;
+    Image.Picture.Assign(Base64ToPng(Trim(ErrorImage)));
+  end;
 
   //Start Toast
   TimerAnimation.Enabled := True;
