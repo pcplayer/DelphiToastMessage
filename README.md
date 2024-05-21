@@ -42,3 +42,8 @@ So, you don't need to create it and free it. In any form of your project, just c
 ### Updated 2024-5-13
 1. Add message queue;
 2. Add width calculate;
+
+### updated 2024-5-22
+Add TDzHtmlText for show message to setup LineSpacing and can set the color of a part of chars in message string.
+
+TDzHtmlText is from https://github.com/digao-dalpiaz/DzHTMLText

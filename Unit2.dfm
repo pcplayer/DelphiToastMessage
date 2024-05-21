@@ -2,7 +2,7 @@ object Form2: TForm2
   Left = 0
   Top = 0
   Caption = 'Form2'
-  ClientHeight = 482
+  ClientHeight = 622
   ClientWidth = 830
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,8 +15,8 @@ object Form2: TForm2
   OnResize = FormResize
   TextHeight = 13
   object Label1: TLabel
-    Left = 96
-    Top = 280
+    Left = 40
+    Top = 536
     Width = 31
     Height = 13
     Caption = 'Label1'
@@ -91,11 +91,22 @@ object Form2: TForm2
     end
   end
   object Edit1: TEdit
-    Left = 80
-    Top = 376
+    Left = 56
+    Top = 568
     Width = 121
     Height = 21
     TabOrder = 2
     Text = 'Edit1'
+  end
+  object RadioGroup1: TRadioGroup
+    Left = 224
+    Top = 496
+    Width = 185
+    Height = 105
+    Caption = 'RadioGroup1'
+    Items.Strings = (
+      'Label'
+      'HTMLPanel')
+    TabOrder = 3
   end
 end

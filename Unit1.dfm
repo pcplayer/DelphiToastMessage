@@ -49,5 +49,16 @@ object Form1: TForm1
       TabOrder = 1
       Text = 'Edit1'
     end
+    object RadioGroup1: TRadioGroup
+      Left = 456
+      Top = 150
+      Width = 185
+      Height = 105
+      Caption = 'RadioGroup1'
+      Items.Strings = (
+        'Label'
+        'HTMLPanel')
+      TabOrder = 2
+    end
   end
 end

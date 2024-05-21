@@ -18,6 +18,7 @@ type
     Button1: TButton;
     Edit1: TEdit;
     Label1: TLabel;
+    RadioGroup1: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnSuccessClick(Sender: TObject);
@@ -43,18 +44,27 @@ uses Unit1;
 {$R *.dfm}
 
 procedure TForm2.BtnErrorClick(Sender: TObject);
+var
+  AType: TpLabelType;
 begin
-  TToastMessage.ToastIt(Self, tpError,'Error','My Text');
+  AType := TpLabelType(RadioGroup1.ItemIndex);
+  TToastMessage.ToastIt(Self, AType, tpError,'Error','My Text');
 end;
 
 procedure TForm2.BtnInfoClick(Sender: TObject);
+var
+  AType: TpLabelType;
 begin
-  TToastMessage.ToastIt(Self, tpInfo,'Info','这是一个很长的提示信息，看看长度是否可以放得下，哈哈哈，this is a test text');
+  AType := TpLabelType(RadioGroup1.ItemIndex);
+  TToastMessage.ToastIt(Self, AType, tpInfo,'Info','这是一个很长的提示信息，<fc:clRed>看看</fc>长度是否可以放得下，哈哈哈，this is a test text');
 end;
 
 procedure TForm2.BtnSuccessClick(Sender: TObject);
+var
+  AType: TpLabelType;
 begin
-  TToastMessage.ToastIt(Self, tpSuccess,'Success','My Text');
+  AType := TpLabelType(RadioGroup1.ItemIndex);
+  TToastMessage.ToastIt(Self, AType, tpSuccess,'Success','My Text');
 end;
 
 procedure TForm2.Button1Click(Sender: TObject);

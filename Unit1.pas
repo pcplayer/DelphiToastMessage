@@ -12,6 +12,7 @@ type
     Panel2: TPanel;
     Button1: TButton;
     Edit1: TEdit;
+    RadioGroup1: TRadioGroup;
     procedure Button1Click(Sender: TObject);
     procedure FormResize(Sender: TObject);
   private
@@ -30,8 +31,11 @@ uses uTToastMessage;
 {$R *.dfm}
 
 procedure TForm1.Button1Click(Sender: TObject);
+var
+  AType: TpLabelType;
 begin
-  TToastMessage.ToastIt(Self, tpError,'Error','Hello, found a error!');
+  AType := TpLabelType(RadioGroup1.ItemIndex);
+  TToastMessage.ToastIt(Self, AType, tpError,'Error','Hello, found a error!');
 end;
 
 procedure TForm1.FormResize(Sender: TObject);

@@ -34,6 +34,8 @@ unit uTToastMessage;
   8.1. FMessageList: TStringList 用于存放消息队列；字符串用于存放消息，格式是：modetype;title;text, 中间用[;]分割；
   8.2. TWinControl 是指消息的 Parent;
 
+  9. https://github.com/digao-dalpiaz/DzHTMLText
+
   pcplayer 2024-5-11
 --------------------------------------------------------------------------------}
 interface
@@ -44,6 +46,7 @@ uses System.NetEncoding,
      Vcl.Extctrls,
      Vcl.StdCtrls,
      Vcl.Imaging.pngimage,
+     Vcl.DzHTMLText, //引入一个新的替代 TLabel 的控件
      System.Classes,
      System.Generics.Collections,
      System.SysUtils,
@@ -52,6 +55,7 @@ uses System.NetEncoding,
      Winapi.Messages;
 
 type tpMode = (tpSuccess,tpInfo,tpError);
+     TpLabelType = (tpLabel, tpHtmlPanel);
 
 type
   TToastMessage = class
@@ -80,6 +84,7 @@ type
       Image        : TImage;
       Title        : TLabel;
       Text         : TLabel;
+      Text2        : TDzHtmlText; //add by pcplayer
       MaxTop       : Integer;
       MinTop       : Integer;
 
@@ -104,7 +109,7 @@ type
     constructor Create(const Parent : TWinControl); overload;
     destructor Destroy; override;
 
-    class procedure ToastIt(const Parent : TWinControl; const MessageType : tpMode; pTitle, pText : string);
+    class procedure ToastIt(const Parent : TWinControl; const LabelType: TpLabelType; const MessageType : tpMode; pTitle, pText : string);
     class procedure RealseMe;
 
     property IsShowing: Boolean read GetIsShowing;
@@ -374,11 +379,27 @@ begin
   Text.Enabled      := True;
   Text.Font.Color   := TextColor;
   Text.Font.Name    := 'Segoe UI';
-  Text.Font.Size    := 8;
+  Text.Font.Size    := 9;
   Text.Transparent  := True;
-  Text.Font.Style   := [fsBold];
+  //Text.Font.Style   := [fsBold];
   Text.AlignWithMargins := True;
   Text.Transparent := True;
+
+  Text2 := TDzHtmlText.Create(Application);
+  Text2.Parent := PanelMessage;
+  Text2.Name := 'HtmlPanel1';
+  Text2.Align := alClient;
+  Text2.OverallVertAlign := TDHVertAlign.vaCenter;
+  Text2.LineHorzAlign := TDHHorzAlign.haCenter;
+  Text2.LineVertAlign := TDHVertAlign.vaCenter;
+  Text2.Font.Name := 'Segoe UI';
+  Text2.Font.Size := 9;
+  Text2.Font.Color := TextColor;
+  Text2.Transparent := True;
+  Text2.Color := clRed;
+  //Text2.Font.Style := [fsBold];
+  Text2.AlignWithMargins := True;
+  Text2.LineSpacing := 4; //解决行距问题
 end;
 
 destructor TToastMessage.Destroy;
@@ -448,7 +469,8 @@ end;
 procedure TToastMessage.Toast(const Parent: TWinControl;
   const MessageType: tpMode; pTitle, pText: string);
 var
-  hs, tmp: Integer;
+  hs, tmp, i, j, WordHeight: Integer;
+  AText: string;
 begin
   if Self.IsShowing then
   begin
@@ -467,18 +489,17 @@ begin
   PanelBox.Height := 50;
   PanelBox.Width := 50 + Text.Canvas.TextWidth(pText);
   tmp := Text.Canvas.TextWidth('W');
+  WordHeight := Text.Canvas.TextHeight('H');
+
   if PanelBox.Width > ((Parent as TForm).Width / 2) then
   begin
-    {PanelBox.Width := 50 + Text.Canvas.TextWidth(pText) div 2;
-    if PanelBox.Width> (Parent as TForm).Width then
-      PanelBox.Width := (Parent as TForm).Width -10;
-    }
-
     PanelBox.Width := Trunc(Parent.Width / 2);    //pcplayer.
 
     hs := (PanelBox.Width-50) div tmp; //每行容纳n个字符
+
     hs := Length(pText) div hs;  //n行
-    PanelBox.Height := Title.Height + Text.Height + (hs-1) * Text.Canvas.TextHeight(pText) + 40;
+
+    PanelBox.Height := Title.Height + WordHeight + (hs-1) * WordHeight + 40;
     MinTop := -PanelBox.Height;
   end;
 
@@ -487,12 +508,26 @@ begin
   Self.Toast(MessageType, pTitle, pText);
 end;
 
-class procedure TToastMessage.ToastIt(const Parent : TWinControl; const MessageType: tpMode; pTitle,
+class procedure TToastMessage.ToastIt(const Parent : TWinControl; const LabelType: TpLabelType; const MessageType: tpMode; pTitle,
   pText: string);
 begin
   if not Assigned(FToastMessage) then
   begin
     FToastMessage := TToastMessage.Create(Parent);
+  end;
+
+  case LabelType of
+    tpLabel:
+    begin
+      FToastMessage.Text.Visible := True;
+      FToastMessage.Text2.Visible := not FToastMessage.Text.Visible;
+    end;
+
+    tpHtmlPanel:
+    begin
+      FToastMessage.Text.Visible := False;
+      FToastMessage.Text2.Visible := True; // not FToastMessage.Text.Visible;
+    end;
   end;
 
   FToastMessage.Toast(Parent, MessageType, pTitle, pText);
@@ -503,6 +538,7 @@ begin
   Self.PanelBox.BringToFront; //Z轴方向放到最顶上； //pcplayer
   Title.Caption := pTitle;
   Text.Caption  := pText;
+  Text2.Lines.Text := pText;
 
   if MessageType = tpSuccess then
   begin
